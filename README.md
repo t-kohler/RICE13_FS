@@ -1,95 +1,254 @@
-# RICE13_pyomo
-RICE model (version 2013 ) in Python (Pyomo)
+# RICE13_FS
+**Fehr–Schmidt Inequality Aversion in the RICE Integrated Assessment Model**
 
-This project aims at porting the [RICE model](https://en.wikipedia.org/wiki/DICE_model) (version 2013) by William Nordhaus in Pyomo, a Python package that emulates the behaviour of GAMS and other AMLs.
-Differently from the DICE model, whose version 2013 has already been ported to Pyomo and can be found [here](https://github.com/moptimization/pythondice2013implementation), the RICE model do not consider the world as a whole, disaggregating instead it into 12 countries\regions. This complicates the analysis but allows to study the problem of international environmental agreements (IEAs) formation from a game theoretical (coalitional) point of view.
+This repository extends a Pyomo implementation of RICE2013 with **Fehr–Schmidt (FS) inequality aversion** to separate **interregional equity concerns** from **intergenerational discounting**. It supports:
+- cooperative (social planner) solutions,
+- noncooperative Nash equilibria,
+- and coalition games with stability diagnostics,
+under both CRRA and FS welfare specifications.
 
-## How to...
-The repository is self-contained and provides all the necessary data (in the folder _Data_) to run the model, together with the open-source non-linear solver IPOPT, version 3.9.1, in the folder _Solver_ (you may want to check if a newer version of the solver is available [here]( https://github.com/coin-or/Ipopt)). Data are taken from the Excell version of the RICE model 2013. Note that some Python packages are required to run the model, namely **Pyomo, Pandas, Numpy, Openpyxl, Math and Argparse**, together with their dependencies. 
-The model can be run by launching the file RICE_2013.py from command line: 
+This repo is intended to reproduce the results in the paper:
 
-…\RICE13_pyomo> python RICE_2013.py
+> **Fehr--Schmidt Inequality Aversion in the RICE Integrated Assessment Model**
 
-Without providing any argument, the script will compute the solution of the model for the non-cooperative case (all countries\regions behaving fully egoistically) and for the fully cooperative case \[grand coalition\] (all countries\regions maximize the global wealth). This second option is equivalent to the DICE 2013 model. The time horizon is set to 14 time periods with a time step between each period of 10 years (the first time period is 2015 and, therefore, the model covers the temporal range from 2015 to 2155). By default, no intermediate coalitions are computed, where a coalition is a group of countries\regions that maximize their joint welfare instead of behaving egoistically (although they behave egoistically towards the non-members of the coalition). In order to activate the computation of coalitions and to change other default settings, appropriate options have to be passed.
+Replication instructions are described in the paper’s reproduction appendix and implemented here.
 
-### Options
-| Option     | Type of value              | Description
-|------------ |----------------------------|----------------------------------------------------|
-|--T          |integer	                   |number of time periods (min = 2, max = 59, default = 15)|
-|--tstep     |integer                    |number of years between each time period (valid values: 1, 2, 5, 10, 20; default = 10). If 20 is chosen as time step, the maximal number of time periods (T) is reduced to 29 such that T*tstep <= 590.|
-|--tol	      |integer	                   |precision of the optimization algorithm (min = 7, max = 12, default = 7)|
-|--max_it	  |integer	                   |maximum number of iterations performed by the optimization algorithm, (min = 500, max = 25000, default = 10000)|   
-|--coop		    |string (no quotation marks) |Compute\do not compute the full cooperative solution (options are _True_ or _False_, default is _True_)|
-|--nc		      |string (no quotation marks) |Compute\do not compute the fully non-cooperative solution (options are _True_ or _False_, default is _True_)|
-|--coalition	|string		                   |Compute or not intermediate coalitions. The options are _none_ (no quotation marks) [no coalition is computed], _all_ (no quotation marks) [all coalitions are computed] or a list, inside double quotation marks, of countries\regions identifiers that constitute the coalition to be examined: e.g. "US, EU, LAM". The default is _none_. Note that passing the option _all_ will cause the computation of 4082 coalitions, computation that may take several hours (possibly days – a commercial solver instead of IPOPT may sensibly reduce the computation time)|
+---
 
-The identifiers of the countries\regions are the followings:
+## Origin and relationship to upstream
+This repository is a fork of:
 
-| Identifier | Country\Region |
-|------------|----------------|
-|US			|United States of America|
-|JPN			|Japan|
-|EU			|Western European Union|
-|RUS		 | Russia|
-|EUR		  |Eurasia|
-|CHI			|China|
-|IND			|India|
-|MEST		|Middle East|
-|AFR			|Africa|
-|LAM		  |Latin America|
-|OHI			|Other highly industrialized countries|
-|OTH		  |Other South-East Asian countries|
+- `white-heomoi/RICE13_pyomo`
 
-Remember that all options should be provided without quotation marks, except for the eventual list of countries\regions that must be enclosed in DOUBLE quotation marks. Only one coalition a time (or all) can be selected.
-Example of model run with parameters:
+The main additions in this fork are:
+- **FS preferences** with tunable envy/guilt components,
+- a **discounting-adjustment** option to align FS intertemporal weighting to a CRRA benchmark,
+- scenario generation for **planner**, **Nash**, and **coalitions**,
+- a mandatory SQLite **coalition cache** (single source of truth for coalition exports),
+- a `Scenario_explorer.ipynb` notebook to recreate paper figures/tables from exported scenarios,
+- and utilities for exporting results to **IAMC/pyam** format.
 
- …\RICE13_pyomo> python RICE_2013.py --T 25 --tstep 5 --tol 8 --max_iter 2000 --coop False --nc True --coalition "CHI, IND, AFR"
- 
-This will compute the model for the fully non-cooperative case and for the coalition including China, India and Africa. 25 time periods with five years time step (125 years) will be considered, while the optimization algorithm will have a precision till the eigth decimal place and will make a maximum of 2000 iterations.
- 
-Results are automatically exported in Excell format in the folder _Results_. The file _coop.xlsx_ retains the results for the fully cooperative case, the file _non_coop.xlsx_ the ones for the fully non-cooperative case, whereas, if a single coalition is selected, results are stored in the file named has the provided coalition: e.g. _CHI, IND, AFR.xslx_. If the option _all_ for -–coalition is selected, for each coalition will be created a file with increasing number: _coa1.xlsx_, _coa2.xlsx_,..., _coa4082.xlsx_. Note that, when this option is selected, the fully cooperative and the fully non-cooperative cases are computed by default, even if the argument _False_ is passed to --coop and to --nc. If a new simulation is run with modified parameters, it is opportune to move the results files currently in the _Results_ folder outside of it, otherwise they will be overwritten. 
+---
 
-### The results output
-The results files have a sheet for each of the countries\regions displaying the values of all the model variables (rows) for each time period (columns). An additional sheet, called _global_, displays the variable that are common to all countries\regions. 
-The countries\regions variables are:    
+## Repository layout
 
-|Variable identifier|Description|
-|------------|----------------|
-|U		    |per period utility|
-|K		    |capital stock|
-|S		    |saving rate (as proportion of net output)|
-|I		    |investments|
-|Q		    |gross output|
-|Y		    |net output (after environmental damages and abatement expenditures)|
-|AB		  |abatement costs as proportion of gross output|
-|D		    |environmental damages|
-|C		    |consumption|
-|E_ind		|industrial emissions (per country\region)|
+- `RICE13_FS/` — the Python package
+  - `cli.py` — command line entrypoint
+  - `pyam_exporter.py` — used by the Scenario_explorer to load Excel scenarios
+  - `analysis/` — orchestration (BAU → planners → Nash → coalitions) and Negishi weight computation
+  - `core/` — model construction + data loading
+  - `solve/` — BAU/planner/Nash/coalition solve routines
+  - `output/` — Excel export + caching
+- `RICE13_FS/Data/` — RICE2013 input data plus FS parameter files / calibrations
+- `RICE13_FS/Results/` — Excel outputs (scenarios, stability sheets, overview tables)
+- `RICE13_FS/Cache/` — SQLite cache for coalition solutions (mandatory)
+- `RICE13_FS/Diagnostics/` — optional IPOPT logs/plots (when enabled)
+- `Scenario_explorer.ipynb` — recreates figures/tables from exported scenarios
+- `config.yaml` — run configuration
 
-The global variables are:
+---
 
-|Variable identifier|Description|
-|------------|----------------|
-|E_tot		|total industrial emissions at global level|
-|M_at		|atmospheric GHG concentration|
-|M_up		|biosphere and upper ocean GHG concentration|
-|M_lo		|GHG concentration in lower strata of oceans|
-|T_at		|atmospheric temperature change 	|
-|T_lo		|temperature change in lower strata of oceans|
-|F		    |radiative force|
+## Installation
 
-In the files of results relative to coalitions there is an additional sheet, _members_, reporting the list of countries\regions member of the currently analyzed coalition and an indication of the number of iterations occurred to reach convergence. This last number, for the fully non-cooperative case, can be found in the _global_ sheet. Note that this is different from the iteration number of the optimization algorithm. For all cases, except the fully cooperative one, it is adopted the same algorithm proposed by Nordhaus, namely solving the optimization problem for each country at a time, fixing the values of the variables of all other countries as the results of the last optimization (or some starting values for the first optimization round). At every round, it is checked the difference of the control variables for all countries with the ones obtained in the previous round: if such difference is sufficiently small the algorithm is terminated since convergence has been reached, otherwise it is continued. The maximal number of iterations is fixed at 25. You should **always check this number** in the results file. If it is equal to 26 (the limit plus 1), it means that the algorithm has been interrupted before convergence has been reached, so the displayed results should not be trusted. 
+### 1) Python dependencies
+Create a virtual environment and install requirements:
 
-### Analysis of coalition stability
-Another information reported on the output file(s) is the result of the stability analysis of coalitions. This result is not reported for the fully non-cooperative case since it has scarce meaning. For all other cases, the following table is shown in the _global_ sheet:
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python -m pip install -U pip
+python -m pip install -r requirements.txt
+```
 
-|Type of stability| Result|
-|------------ |----------------------------|
-|Internallly Stable| True\False|
-|Externally Stable| True\False. For the fully cooperative case, the _Non Applicable_ message is applied.|
-|Fully Stable| True\False|
-|PIS (Potential Internally Stable)| True\False|
+### 2) External solver: IPOPT
 
-Given a coalition, it is said to be internally stable if the payoff of each of its members is at least as much as the payoff that it would obtain by being the only one to leave the same coalition. Similarly, external stability requires that the payoff of each of the players outside of a coalition is at least as high as the payoff they could obtain by being the only one to join the same coalition. If both conditions are met simultaneously, the coalition is said to be fully stable, meaning that no player, either member or not of the coalition, has an incentive to unilaterally change its status (a concept similar to Nash equilibrium).  
-Finally, potential internal stability (PIS) is a weaker condition of internal stability, requiring that the sum of the payoffs of the members of a coalition is higher than the sum of the payoffs they would obtain by abandoning, one at a time, the same coalition. In case a coalition fails to be internally stable, but meets the potential stability condition, this implies that there exist the possibility to stabilize (internally) the coalition through some transfers of payoffs among its members.
-As a last remark, note that the players' payoffs discussed here are the sum of the utilities over all time periods for each player. 
+This project solves nonlinear programs via Pyomo + IPOPT.
+
+You need an **IPOPT executable** available on your PATH, or set `ipopt_executable:` in `config.yaml`.
+
+> Tip: if you use conda, IPOPT is commonly available via conda-forge.
+
+### 3) Optional: pyam exporter
+
+If you want to run `Scenario_explorer.ipynb` or convert scenario Excel files to IAMC format, install:
+
+```bash
+python -m pip install pyam-iamc
+```
+
+The import is `import pyam`, but the pip package name is `pyam-iamc`.
+
+If `import pyam` fails or imports the wrong thing, check:
+
+```bash
+python -m pip show pyam-iamc
+python -c "import pyam; print(pyam.__version__)"
+```
+
+---
+
+## Quick start
+
+### Run the model (preferred: as a module)
+
+From the repository root:
+
+```bash
+python -m RICE13_FS.cli -c config.yaml --log-level INFO
+```
+
+This will:
+
+1. optionally run BAU,
+2. optionally compute/load Negishi weights,
+3. run cooperative planners (CRRA and/or FS),
+4. run Nash equilibria (CRRA and/or FS),
+5. and/or run coalition solves with stability diagnostics,
+   depending on flags in `config.yaml`.
+
+Outputs are written to the directories set in the config, typically:
+
+* Excel workbooks to `results_dir`
+* cache entries to `cache_dir`
+* optional logs/plots to `diagnostics_dir`
+
+---
+
+## Configuration overview (`config.yaml`)
+
+The config is designed to support a “scenario pipeline” controlled by booleans and mode switches.
+
+Highlights:
+
+* `T`: horizon in model periods (fixed 10-year grid; data supports up to 59)
+* Paths:
+
+  * `data_path`, `results_dir`, `output_dir`, `diagnostics_dir`, `cache_dir`
+* Negishi:
+
+  * `negishi_use` and `negishi_source` (`bau`, `file`, `fs_after_disc`)
+* FS discounting / alignment (optional):
+
+  * `fs_disc_enabled`, `fs_disc_mode` (`off`, `file`, `one_pass`, `two_pass`)
+* Switches:
+
+  * `run_bau`, `run_planner_crra`, `run_planner_fs`, `run_nash_crra`, `run_nash_fs`,
+    `run_coalition_crra`, `run_coalition_fs`
+* Savings modes (`*_S_mode`):
+
+  * typically `bau`, `optimal`, `file`, or “use results from another regime”
+* Coalitions:
+
+  * `coalition` can be `GRAND`, a comma list (`"US,EU,..."`), or a bitmask (`101010101010`)
+  * `mega_run` toggles full enumeration where supported (expensive, runs for many hours or days)
+
+* Cache:
+
+  * `cache_namespace` lets you isolate runs when specs/inputs change
+  * `cache_allow_mismatch=false` is the safe default
+
+---
+
+## Reproducing the paper
+
+### Option A: Use precomputed scenarios (fastest)
+
+This repo includes a scenarios folder with **precomputed scenario Excel workbooks** and **coalition stability overview tables**.
+
+1. Ensure the folder exists (`scenarios/`), containing the exported Excel results.
+2. Open `Scenario_explorer.ipynb`.
+3. Set:
+
+   ```python
+   scenario_folder = Path("scenarios")  # adjust this if you change the name
+   ```
+4. Run the notebook to regenerate the figures and tables used in the paper.
+
+### Option B: Recompute scenarios from scratch
+
+1. Edit `RICE13_FS/config.yaml` to select the scenarios you want (planner/Nash/coalitions, CRRA/FS, discounting mode, etc.).
+2. Run from the repository root (the directory containing `RICE13_FS/`):
+
+```bash
+   python -m RICE13_FS.cli -c RICE13_FS/config.yaml --log-level INFO
+```
+
+3. Open `RICE13_FS/Scenario_explorer.ipynb` and point it to the folder containing the exported Excel workbooks:
+
+   * either the `results_dir` configured in `RICE13_FS/config.yaml`, or
+   * a curated subset you copied into a dedicated folder (e.g. `RICE13_FS/scenarios/`).
+
+> Coalition runs can be expensive; the SQLite cache (configured via `cache_dir`/`cache_namespace`) is mandatory and is used to avoid recomputation and to standardize exports.
+
+---
+
+## Notebook: `Scenario_explorer.ipynb`
+
+The notebook is meant to recreate paper outputs and additional material, including sections like:
+
+* World temperature
+* World inequality
+* Carbon taxes / SCC
+* Table extraction utilities
+* Figures used in the paper
+* Nash comparisons
+
+It expects a folder of scenario workbooks and uses the pyam exporter to load them into a single `pyam.IamDataFrame`.
+
+---
+
+## IAMC / pyam export
+
+There is a small helper module to read exported Excel files and build an IAMC-style dataset:
+
+```python
+from pathlib import Path
+from RICE13_FS.pyam_exporter import build_iamdf
+
+folder = Path("scenarios")   # folder of exported Excel workbooks
+iamdf = build_iamdf(folder)
+```
+
+You can then filter/plot using `pyam`.
+
+---
+
+## Troubleshooting
+
+### IPOPT not found
+
+* If Pyomo errors with “no executable found”, either:
+
+  * install IPOPT and make sure it’s on PATH, or
+  * set `ipopt_executable:` in `config.yaml`.
+
+### Cache mismatch errors
+
+* If `cache_allow_mismatch=false` and you changed inputs/specs, create a new namespace:
+
+  * `cache_namespace: cache2`
+* Setting `cache_allow_mismatch=true` is generally not recommended.
+
+### `import pyam` issues
+
+Install the correct package:
+
+```bash
+python -m pip install pyam-iamc
+```
+
+If you accidentally installed the other `pyam`, uninstall it:
+
+```bash
+python -m pip uninstall pyam
+```
+
+---
+
+## Acknowledgements
+
+This repository was developed with extensive assistance from OpenAI’s ChatGPT, including iterative design, debugging, refactoring, and documentation support. All code and results were reviewed and validated by the author, who remains responsible for any remaining errors.
+
+## License
+
+License: CC0-1.0. This repository (and the upstream fork base) is dedicated to the public domain under CC0. See LICENSE.

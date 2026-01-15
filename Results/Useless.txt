@@ -1,2 +1,0 @@
-This is a useless file. It is here just because Git does not allow to have empty folders.
- 

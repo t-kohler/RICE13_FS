@@ -1,0 +1,13 @@
+Region;Repres;From eq?;Mean?;alpha;beta
+US;USA;True;;1.039;0.072
+EU;DEU;True;;1.833;0.08
+JAP;JPN;True;;1.402;0.085
+RUS;RUS;True;;0.766;0.081
+EUR;UKR;False;True;1.531;0.088
+CHI;CHN;True;;0.817;0.088
+IND;IND;True;;0.62;0.108
+MEST;SAU;True;;0.586;0.075
+AFR;EGY;True;;0.8;0.101
+LAM;ARG;True;;0.913;0.086
+OHI;KOR;True;;1.433;0.084
+OTH;IDN;True;;0.704;0.101

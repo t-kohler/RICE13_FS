@@ -1,0 +1,106 @@
+# =========================
+# RICE13_FS — Config
+# =========================
+# Example usage (run from repo root, i.e. the directory containing RICE13_FS/):
+# python -m RICE13_FS.cli --config RICE13_FS/config.yaml --log-level "DEBUG"
+
+# --- Horizon (data available up to 59 decades = 590 years) ---
+T: 59   # integer, must be <= 59.
+
+# --- Tags (for use in the pyam scenario analysis, the rest is read from config) ---
+tags:
+  fs_params: estpar
+  fs_disc_param: 
+  crra_params: 
+  note: 
+
+# --- Paths ---
+project_root: .
+data_path: ./RICE13_FS/Data
+results_dir: ./RICE13_FS/Results          # CLI will mkdir; per-coalition Excel & overview go here
+diagnostics_dir: ./RICE13_FS/Diagnostics      # heavy logs/plots if diagnostics_level='debug'
+output_dir: ./RICE13_FS/Results           # solver exports (e.g., S paths, Negishi weights) — same as results_dir is fine
+
+# --- Negishi (used by planners and coalitions if enabled) ---
+negishi_use: false           # true → use Negishi weights in planner/coalitions (spec-id will include a digest)
+negishi_source: bau          # 'bau' | 'fs_after_disc' | 'file' (if 'file', provide paths below)
+negishi_file_crra_path: ./RICE13_FS/exogenous_negishi_crra.csv
+negishi_file_fs_path:   ./RICE13_FS/exogenous_negishi_fs.csv
+
+# FS-specific option (for Fehr–Schmidt aggregation only)
+population_weight_envy_guilt: true     # FS MU weighting (unchanged behavior)
+fs_disc_enabled: false                  # true → apply fs_disc_mode to all FS runs (planner, Nash, coalitions)
+fs_disc_mode: one_pass            # off | file | one_pass | two_pass
+fs_disc_file: ./RICE13_FS/fs_discount_series.csv   # only when fs_disc_mode = file
+
+# =========================
+# 1) BAU
+# =========================
+run_bau: true
+
+# =========================
+# 2) Cooperative planners
+# =========================
+# 2a) CRRA planner
+run_planner_crra: true
+planner_crra_S_mode: bau                 # 'optimal' | 'bau' | 'file'
+planner_crra_S_file: ./RICE13_FS/exogenous_S_test.csv
+
+# 2b) FS planner
+run_planner_fs: true
+planner_fs_S_mode: bau                      # 'optimal' | 'bau' | 'crra' | 'file'
+planner_fs_S_file: ./RICE13_FS/exogenous_S_test.csv
+
+# =========================
+# 3) Noncooperative Nash
+# =========================
+# 3a) CRRA Nash
+run_nash_crra: true
+nash_crra_seed: data                  # 'planner' | 'bau' | 'data'
+nash_crra_S_mode: bau       # 'optimal' | 'bau' | 'file' | 'planner_crra' | 'planner_fs'
+nash_crra_S_file: ./RICE13_FS/exogenous_S.csv
+
+# 3b) FS Nash
+run_nash_fs: true
+nash_fs_seed: data                    # 'planner' | 'bau' | 'data'
+nash_fs_S_mode: bau         # 'optimal' | 'bau' | 'file' | 'planner_crra' | 'planner_fs'
+nash_fs_S_file: ./RICE13_FS/exogenous_S.csv
+
+# =========================
+# 4) Coalitions
+# =========================
+run_coalition_crra: true
+coalition_crra_S_mode: bau    # optimal | bau | file | planner_crra | planner_fs
+coalition_crra_S_file: ./RICE13_FS/exogenous_S.csv
+
+run_coalition_fs: true
+coalition_fs_S_mode: bau      # optimal | bau | file | planner_crra | planner_fs
+coalition_fs_S_file: ./RICE13_FS/exogenous_S.csv
+
+mega_run: false
+coalition: 'US, JAP, RUS, CHI, MEST, LAM, OTH'
+coalition_check_internal: true
+coalition_check_external: true
+
+# --- Stability / diagnostics ---
+stability_eps: 1.0e-7                # minimal utility gain required to count as “improves”/“wants to join or leave”
+diagnostics_level: false           # true -> Nash loop convergence plot and ipopt logs | false -> not
+
+# --- Parallelism ---
+parallel: 1                           # >1 to enable ProcessPool across coalition solves (store writes happen in main process)
+
+# --- Coalition cache (SQLite) — MANDATORY SINGLE SOURCE OF TRUTH ---
+cache_dir: ./RICE13_FS/Cache
+cache_namespace: cache1              # use a new namespace to isolate runs when inputs/spec change
+cache_allow_mismatch: false           # safety: refuse cache hits that don't match spec/exogenous S
+
+# --- IPOPT / solver ---
+ipopt_executable: null                # null = resolve via PATH; or give an explicit path
+tol_ipopt: 1.0e-7
+max_iter_ipopt: 10000
+
+# --- Iteration / convergence (Nash/coalition fixed-point loop) ---
+max_iter_nash: 200
+tol_mu_nash: 1e-5
+nash_relax: 0.75
+ignore_last_k_periods: 10             # sometimes last periods oscillate, preventing convergence
