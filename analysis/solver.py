@@ -163,8 +163,8 @@ def _export_S_csv(sol: dict, regions, T: int, outdir: Path, tag: str) -> None:
 def _export_disc_csv(series_map: Dict, T: int, outdir: Path, tag: str) -> None:
     """
     Write discount series to CSV with a timestamped filename.
-    - Global: {t -> d_t}  → columns: period,disc
-    - Regional: {(r,t) -> d_{r,t}} → columns: region,period,disc
+    - Global: {t -> d_t}  → columns: t,disc
+    - Regional: {(r,t) -> d_{r,t}} → columns: region,t,disc
     """
     ts = datetime.now().strftime("%Y%m%d_%H%M_%S")
     name = f"fs_disc_{tag}_{ts}.csv"
@@ -172,11 +172,11 @@ def _export_disc_csv(series_map: Dict, T: int, outdir: Path, tag: str) -> None:
     if series_map and isinstance(next(iter(series_map.keys())), tuple):
         rows = []
         for (r, t), v in series_map.items():
-            rows.append({"region": str(r), "period": int(t), "disc": float(v)})
-        df = pd.DataFrame(rows).sort_values(["region", "period"])
+            rows.append({"region": str(r), "t": int(t), "disc": float(v)})
+        df = pd.DataFrame(rows).sort_values(["region", "t"])
     else:
         df = pd.DataFrame(
-            {"period": list(range(1, int(T) + 1)),
+            {"t": list(range(1, int(T) + 1)),
              "disc": [float(series_map.get(t, 1.0)) for t in range(1, int(T) + 1)]}
         )
     outdir.mkdir(parents=True, exist_ok=True)
